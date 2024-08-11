@@ -1,4 +1,6 @@
 # Notes
 My first android project
 <br>
-Author - Sagar Akolkar
+<p>Author - Sagar Akolkar</p>
+<p>Hello everyone</p>
+<p>I am sagar akolkar</p>   
