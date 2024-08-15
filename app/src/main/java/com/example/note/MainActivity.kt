@@ -44,6 +44,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.autoSaver
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -51,8 +52,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.modifier.modifierLocalConsumer
 import androidx.compose.ui.modifier.modifierLocalMapOf
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.room.Entity
 import com.example.note.ui.theme.NoteDatabase
 import com.example.note.ui.theme.NoteTheme
@@ -82,11 +85,11 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun card(noteContent : String, onSave: (String) -> Unit){
+fun card(noteContent : entity, onSave: (String) -> Unit, onDelete : (entity) -> Unit){
     val context = LocalContext.current
     val mdb = remember { NoteDatabase.getInstance(context) }
 
-    var text by remember { mutableStateOf("") }
+    var text by remember { mutableStateOf(noteContent.text) }
     var edit by remember { mutableStateOf(true) }
     var done by remember { mutableStateOf(false) }
 
@@ -104,10 +107,8 @@ fun card(noteContent : String, onSave: (String) -> Unit){
                 .align(alignment = Alignment.End)
         ) {
             IconButton(onClick = {
-                val dnote = entity(text = text)
-                CoroutineScope(Dispatchers.IO).launch{
-                    mdb.NoteDAO().DeleteNote(dnote)
-                } },
+                onDelete(noteContent)
+                 },
                 modifier = Modifier) {
                 Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete Button")
             }
@@ -171,6 +172,29 @@ fun card(noteContent : String, onSave: (String) -> Unit){
     }
 }
 
+
+
+@Composable
+fun nonote(){
+    Box(modifier = Modifier
+        .fillMaxSize()){
+        Card(
+            modifier = Modifier
+                .align(alignment = Alignment.Center),
+
+        ) {
+            Text(text = " No Notes \n Add New",
+                fontSize = 45.sp,
+                style = TextStyle(
+                    lineHeight = 45.sp
+                ),
+                modifier = Modifier
+                    .align(alignment = Alignment.CenterHorizontally)
+            )
+        }
+    }
+}
+
 @Composable
 fun Screen(){
 
@@ -185,41 +209,61 @@ fun Screen(){
         notesList.addAll(notes)
     }
 
-
-    Box(modifier = Modifier
-        .fillMaxSize()){
-        
-        LazyColumn(
+    if(notesList.isEmpty()){
+        nonote()
+    }
+    else {
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(10.dp)
-        ){
-            items(notesList) { note ->
-                card(note.text) { updatedContent ->
-                    CoroutineScope(Dispatchers.IO).launch {
-                        mdb.NoteDAO().NewNote(note.copy(text = updatedContent))
-                    }
+        ) {
+
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(10.dp)
+            ) {
+                items(notesList) { note ->
+                    card(
+                        noteContent = note,
+
+                        onSave = { updatedContent ->
+                        CoroutineScope(Dispatchers.IO).launch {
+                            mdb.NoteDAO().NewNote(note.copy(text = updatedContent))
+                        }
+                    }, onDelete = { noteToDelete ->
+                            notesList.remove(noteToDelete)
+                            CoroutineScope(Dispatchers.IO).launch {
+                                mdb.NoteDAO().DeleteNote(noteToDelete)
+                            }
+                        })
                 }
             }
-        }
-        
-        
-        IconButton(onClick = {
-            val newNote = entity(text = "")
-            notesList.add(newNote)
-            CoroutineScope(Dispatchers.IO).launch {
-                mdb.NoteDAO().NewNote(newNote)
-            }
 
-        },
+
+
+        }
+    }
+    Box(modifier = Modifier) {
+        IconButton(
+            onClick = {
+                val newNote = entity(text = "", id = 0)
+                notesList.add(newNote)
+                CoroutineScope(Dispatchers.IO).launch {
+                    mdb.NoteDAO().NewNote(newNote)
+                }
+
+            },
             modifier = Modifier
                 .align(alignment = Alignment.BottomEnd)
                 .padding(end = 15.dp, bottom = 15.dp)
 
-        ){
-            Icon(imageVector = Icons.Default.Add,
+        ) {
+            Icon(
+                imageVector = Icons.Default.Add,
                 contentDescription = "Add new note",
-                Modifier.size(45.dp))
+                Modifier.size(45.dp)
+            )
         }
     }
 

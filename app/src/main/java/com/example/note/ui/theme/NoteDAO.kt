@@ -5,6 +5,8 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import java.net.IDN
+
 @Dao
 interface NoteDAO {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
