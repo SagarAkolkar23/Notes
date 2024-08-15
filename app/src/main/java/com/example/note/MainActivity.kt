@@ -1,7 +1,9 @@
 package com.example.note
 
+import android.annotation.SuppressLint
 import android.graphics.Paint.Align
 import android.os.Bundle
+import android.provider.ContactsContract
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -13,10 +15,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Done
@@ -33,7 +39,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -45,7 +53,13 @@ import androidx.compose.ui.modifier.modifierLocalMapOf
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.room.Entity
+import com.example.note.ui.theme.NoteDatabase
 import com.example.note.ui.theme.NoteTheme
+import com.example.note.ui.theme.entity
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.intellij.lang.annotations.JdkConstants.HorizontalAlignment
 
 class MainActivity : ComponentActivity() {
@@ -59,22 +73,25 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
 
-                        card()
-
+                    Screen()
                 }
             }
         }
     }
 }
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun card(){
+fun card(noteContent : String, onSave: (String) -> Unit){
+    val context = LocalContext.current
+    val mdb = remember { NoteDatabase.getInstance(context) }
+
     var text by remember { mutableStateOf("") }
     var edit by remember { mutableStateOf(true) }
     var done by remember { mutableStateOf(false) }
-    val context = LocalContext.current
+
+
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -86,7 +103,11 @@ fun card(){
                 .wrapContentSize()
                 .align(alignment = Alignment.End)
         ) {
-            IconButton(onClick = { /*TODO*/ },
+            IconButton(onClick = {
+                val dnote = entity(text = text)
+                CoroutineScope(Dispatchers.IO).launch{
+                    mdb.NoteDAO().DeleteNote(dnote)
+                } },
                 modifier = Modifier) {
                 Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete Button")
             }
@@ -150,10 +171,66 @@ fun card(){
     }
 }
 
+@Composable
+fun Screen(){
+
+
+    val context = LocalContext.current
+    val mdb = remember { NoteDatabase.getInstance(context) }
+    val notesList = remember { mutableStateListOf<entity>() }
+
+
+    LaunchedEffect(Unit){
+        val notes = mdb.NoteDAO().getNotes()
+        notesList.addAll(notes)
+    }
+
+
+    Box(modifier = Modifier
+        .fillMaxSize()){
+        
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(10.dp)
+        ){
+            items(notesList) { note ->
+                card(note.text) { updatedContent ->
+                    CoroutineScope(Dispatchers.IO).launch {
+                        mdb.NoteDAO().NewNote(note.copy(text = updatedContent))
+                    }
+                }
+            }
+        }
+        
+        
+        IconButton(onClick = {
+            val newNote = entity(text = "")
+            notesList.add(newNote)
+            CoroutineScope(Dispatchers.IO).launch {
+                mdb.NoteDAO().NewNote(newNote)
+            }
+
+        },
+            modifier = Modifier
+                .align(alignment = Alignment.BottomEnd)
+                .padding(end = 15.dp, bottom = 15.dp)
+
+        ){
+            Icon(imageVector = Icons.Default.Add,
+                contentDescription = "Add new note",
+                Modifier.size(45.dp))
+        }
+    }
+
+}
+
+
+
 @Preview
 @Composable
 fun pre(){
-    card()
+    Screen()
 }
 
 
