@@ -5,16 +5,17 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import kotlinx.coroutines.flow.Flow
 import java.net.IDN
 
 @Dao
 interface NoteDAO {
-    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun NewNote(entity: entity)
 
     @Delete
     suspend fun DeleteNote(entity: entity)
 
     @Query("select * from entity")
-    suspend fun getNotes() : List<entity>
+    fun getNotes() : Flow<List<entity>>
 }

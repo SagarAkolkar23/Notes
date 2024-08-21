@@ -40,6 +40,7 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -86,9 +87,8 @@ class MainActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun card(noteContent : entity, onSave: (String) -> Unit, onDelete : (entity) -> Unit){
-    val context = LocalContext.current
-    val mdb = remember { NoteDatabase.getInstance(context) }
 
+    val context = LocalContext.current
     var text by remember { mutableStateOf(noteContent.text) }
     var edit by remember { mutableStateOf(true) }
     var done by remember { mutableStateOf(false) }
@@ -125,6 +125,18 @@ fun card(noteContent : entity, onSave: (String) -> Unit, onDelete : (entity) -> 
                 modifier = Modifier) {
                 Icon(imageVector = Icons.Default.Done, contentDescription = "Done Text")
             }
+
+
+
+
+            //This one line saves the text in database
+            onSave(text)
+
+
+
+
+
+
             IconButton(
                 onClick = {
                     if (edit){
@@ -201,13 +213,9 @@ fun Screen(){
 
     val context = LocalContext.current
     val mdb = remember { NoteDatabase.getInstance(context) }
-    val notesList = remember { mutableStateListOf<entity>() }
+    val notesList by mdb.NoteDAO().getNotes().collectAsState(initial = emptyList())
 
 
-    LaunchedEffect(Unit){
-        val notes = mdb.NoteDAO().getNotes()
-        notesList.addAll(notes)
-    }
 
     if(notesList.isEmpty()){
         nonote()
@@ -232,7 +240,6 @@ fun Screen(){
                             mdb.NoteDAO().NewNote(note.copy(text = updatedContent))
                         }
                     }, onDelete = { noteToDelete ->
-                            notesList.remove(noteToDelete)
                             CoroutineScope(Dispatchers.IO).launch {
                                 mdb.NoteDAO().DeleteNote(noteToDelete)
                             }
@@ -248,7 +255,6 @@ fun Screen(){
         IconButton(
             onClick = {
                 val newNote = entity(text = "", id = 0)
-                notesList.add(newNote)
                 CoroutineScope(Dispatchers.IO).launch {
                     mdb.NoteDAO().NewNote(newNote)
                 }
