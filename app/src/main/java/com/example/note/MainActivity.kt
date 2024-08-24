@@ -36,6 +36,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -70,7 +71,7 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
 
-                    Final()
+                    Screen()
                 }
             }
         }
@@ -228,7 +229,10 @@ fun Screen(){
                             )
                         }
                     },
-                    modifier = Modifier.height(45.dp)
+                    modifier = Modifier.height(45.dp),
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    )
                     )
 
         },
@@ -349,9 +353,7 @@ fun Final(){
 @Preview
 @Composable
 fun pre(){
-    var show by remember { mutableStateOf(true) }
-
-    SplashScreen(onTimeout = { show = false})
+    Final()
 
 
 }
